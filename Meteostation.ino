@@ -29,9 +29,11 @@ sensor :: sensor()
 }
 void sensor :: readData()
 {
-  int err = SimpleDHTErrSuccess;                                                  
+  int err = SimpleDHTErrSuccess;  
+  tempTotal = 0;                                                
   if ((err = dht22.read(9, &temp, &hum, NULL)) != SimpleDHTErrSuccess) return;  //считываем показания датчика dht22
-  pres = bmp.readPressure()/133.3;                                              //считываем показания давления
+  pres = bmp.readPressure()/133.3;                                            //считываем показания давления
+  tempTotal += temp;
   tempTotal += (int)bmp.readTemperature();
   tempTotal /= 2;                                                               //берем среднее значение температуры 
 }
