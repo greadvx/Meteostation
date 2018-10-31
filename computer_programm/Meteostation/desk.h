@@ -22,7 +22,9 @@ class Desk : public QWidget
     QVector<double> plotterHum;                 //по влажности
     QVector<double> plotterBar;                 //по давлению
     QVector<double> plotterTime;                //вектор для отрисовки данных по времени
-    int size = 20;                             //размер по оси Х
+    int size = 20;                              //размер по оси Х
+    int i = 0;                                  //время
+    int attempt = 0;
 
 public:
     explicit Desk(QWidget *parent = 0);
@@ -37,6 +39,8 @@ private slots:
     void on_comboBoxPorts_activated(const QString &arg1);
 
     void on_startResumeButton_clicked();
+
+    void on_stopButton_clicked();
 
 private:
     Ui::Desk *ui;

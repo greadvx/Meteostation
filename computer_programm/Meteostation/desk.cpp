@@ -43,6 +43,7 @@ void Desk::on_tempRadioButton_clicked()                                         
     this->temp = true;                                                          //выставляем значения переменных
     this->hum = false;
     this->press = false;
+    updateGraphs();
 }
 
 void Desk::on_humidRadioButton_clicked()                                         //слот на нажатие кнопки
@@ -52,6 +53,7 @@ void Desk::on_humidRadioButton_clicked()                                        
     this->hum = true;                                                           //выставляем значения переменных
     this->temp = false;
     this->press = false;
+    updateGraphs();
 }
 
 void Desk::on_pressRadioButton_clicked()
@@ -61,6 +63,7 @@ void Desk::on_pressRadioButton_clicked()
     this->press = true;
     this->hum = false;
     this->temp = false;
+    updateGraphs();
 }
 void Desk::setProtocol(const QString &name)
 {
@@ -70,7 +73,6 @@ void Desk::setProtocol(const QString &name)
     serial->setParity(QSerialPort::NoParity);                           //устанавливаем парность сигнала
     serial->setStopBits(QSerialPort::OneStop);                           //количество стоп-битов 1
     serial->setFlowControl(QSerialPort::NoFlowControl);                  //устанавливаем контоль потока
-    serial->open(QIODevice::ReadWrite);                                 //открываем выбранный серийный порт
 }
 void Desk::addToContainers(QString tempStr, QString humStr, QString pressStr)
 {                                                                       //функция добавления в контейнер
@@ -153,28 +155,46 @@ void Desk::on_comboBoxPorts_activated(const QString &arg1)
            QMessageBox::information(this, "Attention", "There is nothing connected by Bluetooth.");
            return;
        }
-       setProtocol(arg1);                                                          //настраиваем параметры протокола
-       int i = 0;
-       do{
-           writeSignal();                                                          //отправляем сигнал
-           if (stop) break;
-           QString buffer = readBytesFromPort();
-           QString tempStr, humStr, pressStr;
-           qDebug() << buffer << "\n";
-           tempStr = buffer.mid(7,2);                                              //выделяем показания температуры
-           humStr = buffer.mid(16, 2);                                             //показания влажности
-           pressStr = buffer.mid(25,6);                                            //показания давления
-           addToContainers(tempStr, humStr, pressStr);                             //записываем информацию в контейнеры
-           plotterTime.append(i++);                                                //увеличиваем счетчик времени
-           updateLCD(tempStr, humStr, pressStr);                                   //обновляем показания экранов
-           if (this->pushed)
-               updateGraphs();
-           pauseTimer();                                                            //пауза
-       }while(1);
 }
 
 
 void Desk::on_startResumeButton_clicked()
 {
+    qDebug() << ui->comboBoxPorts->currentText();
+    setProtocol(ui->comboBoxPorts->currentText());
+    serial->open(QIODevice::ReadWrite);                                 //открываем выбранный серийный порт
+    stop = false;
 
+    do{
+        if (stop || !serial->isOpen()) break;
+
+        writeSignal();                                                          //отправляем сигнал
+
+        if (attempt > 0) {
+            QString buffer = readBytesFromPort();
+            QString tempStr, humStr, pressStr;
+            qDebug() << buffer;
+            tempStr = buffer.mid(7,2);                                              //выделяем показания температуры
+            humStr = buffer.mid(16, 2);                                             //показания влажности
+            pressStr = buffer.mid(25,6);                                            //показания давления
+            if (serial->isOpen())
+                addToContainers(tempStr, humStr, pressStr);                             //записываем информацию в контейнеры
+            else break;
+            plotterTime.append(i++);                                                //увеличиваем счетчик времени
+            updateLCD(tempStr, humStr, pressStr);                                   //обновляем показания экранов
+            if (this->pushed)
+                updateGraphs();
+            pauseTimer();                                                            //пауза
+        } else {
+            pauseTimer();
+       }
+        attempt++;
+    }while(true);
+}
+
+void Desk::on_stopButton_clicked()
+{
+   stop = true;
+   attempt = 0;
+   serial->close();
 }
